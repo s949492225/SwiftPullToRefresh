@@ -1,0 +1,2 @@
+rootProject.name = "swift-pulltorefresh-parent"
+include ':sample', ':swift-pulltorefresh'
