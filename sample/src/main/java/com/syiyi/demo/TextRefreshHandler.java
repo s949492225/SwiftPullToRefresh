@@ -4,22 +4,22 @@ import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
-
-import com.syiyi.refresh.BaseRefreshHandler;
+import android.view.ViewGroup;
 import com.syiyi.refresh.DensityUtil;
-import com.syiyi.refresh.SwiftPullToRefresh;
+import com.syiyi.refresh.IRefreshHandler;
 
 
 /**
+ * 下啦刷新界面
  * Created by Dell on 2017/5/18.
  */
 
-public class TextRefreshHandler extends BaseRefreshHandler {
+public class TextRefreshHandler implements IRefreshHandler {
     private Context context;
     private static final String TAG = "TextRefreshHandler";
 
     @Override
-    public View getRefreshView(SwiftPullToRefresh parent) {
+    public View getRefreshView(ViewGroup parent) {
         context = parent.getContext();
         return LayoutInflater.from(parent.getContext()).inflate(R.layout.text, parent, false);
     }

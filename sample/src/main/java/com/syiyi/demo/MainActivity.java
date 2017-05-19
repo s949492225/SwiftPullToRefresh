@@ -2,7 +2,6 @@ package com.syiyi.demo;
 
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-
 import com.syiyi.refresh.OnPullRefreshListener;
 import com.syiyi.refresh.SwiftPullToRefresh;
 

@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.support.v4.view.MotionEventCompat;
 import android.support.v4.view.NestedScrollingChild;
 import android.support.v4.view.NestedScrollingChildHelper;
@@ -32,7 +33,6 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
     private static final float DRAG_RATE = 0.5f;
 
     private int mTouchSlop;
-    private float mInitialMotionY;
     private float mInitialDownY;
     private float mLastMotionY = 0;
     private boolean mIsBeingDragged;
@@ -51,7 +51,7 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
     private int mTotalUnconsumed;
     private final int[] mParentScrollConsumed = new int[2];
     private final int[] mParentOffsetInWindow = new int[2];
-
+    private boolean mEnableFloat;
 
     public SwiftPullToRefresh(Context context) {
         super(context, null, 0);
@@ -63,13 +63,19 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
 
     public SwiftPullToRefresh(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        init(context);
-    }
 
-    private void init(Context context) {
         mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
         mNestedScrollingParentHelper = new NestedScrollingParentHelper(this);
         mNestedScrollingChildHelper = new NestedScrollingChildHelper(this);
+        if (attrs != null) {
+            final TypedArray a = getContext().obtainStyledAttributes(
+                    attrs, R.styleable.SwiftPullToRefresh, defStyleAttr, 0);
+
+            mEnableFloat = a.getBoolean(
+                    R.styleable.SwiftPullToRefresh_enableFloat, false);
+            a.recycle();
+
+        }
 
         mRefreshView = new FrameLayout(getContext());
         addView(mRefreshView, 0, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
@@ -120,15 +126,17 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
         child.layout(childLeft, childTop, childLeft + childWidth, childTop + childHeight);
         int circleWidth = mRefreshView.getMeasuredWidth();
         int circleHeight = mRefreshView.getMeasuredHeight();
+        if (mEnableFloat) {
+            mRefreshView.layout((width / 2 - circleWidth / 2), mCurrentTargetOffsetTop,
+                    (width / 2 + circleWidth / 2), mCurrentTargetOffsetTop + circleHeight);
+        } else {
+            mRefreshView.layout((width / 2 - circleWidth / 2), -circleHeight,
+                    (width / 2 + circleWidth / 2), -circleHeight + circleHeight);
+        }
 
-        mRefreshView.layout((width / 2 - circleWidth / 2), mCurrentTargetOffsetTop,
-                (width / 2 + circleWidth / 2), mCurrentTargetOffsetTop + circleHeight);
-
-
-//            mRefreshView.layout((width / 2 - circleWidth / 2), -circleHeight,
-//                    (width / 2 + circleWidth / 2), -circleHeight + circleHeight);
     }
 
+    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public void requestDisallowInterceptTouchEvent(boolean b) {
         // if this is a List < L or another view that doesn't support nested
@@ -233,11 +241,20 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
                 if (mIsBeingDragged) {
                     final int movDisY = (int) ((y - mLastMotionY) * DRAG_RATE);
                     mLastMotionY = y;
-                    if (mRefreshView.getTop() <= 0) {
-                        moveRefresh(movDisY);
+                    if (mEnableFloat) {
+                        if (mRefreshView.getTop() <= 0) {
+                            moveRefresh(movDisY);
+                        } else {
+                            return false;
+                        }
                     } else {
-                        return false;
+                        if (getScrollY() <= 0) {
+                            moveRefresh(movDisY);
+                        } else {
+                            return false;
+                        }
                     }
+
                 }
                 break;
             }
@@ -260,10 +277,8 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
                 }
 
                 if (mIsBeingDragged) {
-                    final float y = ev.getY(pointerIndex);
-                    final float overScrollTop = (y - mInitialMotionY) * DRAG_RATE;
                     mIsBeingDragged = false;
-                    releaseRefresh(overScrollTop);
+                    releaseRefresh();
                 }
                 mActivePointerId = INVALID_POINTER;
                 return false;
@@ -308,9 +323,14 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
                 mTotalUnconsumed -= dy;
                 consumed[1] = dy;
             }
-
-            if (mRefreshView.getTop() <= 0) {
-                moveRefresh(-consumed[1]);
+            if (mEnableFloat) {
+                if (mRefreshView.getTop() <= 0) {
+                    moveRefresh((int) (-consumed[1] * DRAG_RATE));
+                }
+            } else {
+                if (getScrollY() <= 0) {
+                    moveRefresh((int) (-consumed[1] * DRAG_RATE));
+                }
             }
         }
 
@@ -338,8 +358,14 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
         }
         // Dispatch up our nested parent
         stopNestedScroll();
-        if (-mRefreshView.getHeight() != mRefreshView.getTop()) {
-            releaseRefresh(mRefreshView.getTop() + mRefreshView.getHeight());
+        if (mEnableFloat) {
+            if (-mRefreshView.getHeight() != mRefreshView.getTop()) {
+                releaseRefresh();
+            }
+        } else {
+            if (0 != getScrollY()) {
+                releaseRefresh();
+            }
         }
 
     }
@@ -354,8 +380,14 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
         final int dy = dyUnconsumed + mParentOffsetInWindow[1];
         if (dy < 0 && !canChildScrollUp()) {
             mTotalUnconsumed += Math.abs(dy);
-            if (mRefreshView.getTop() <= 0) {
-                moveRefresh(-dy);
+            if (mEnableFloat) {
+                if (mRefreshView.getTop() <= 0) {
+                    moveRefresh((int) (-dy * DRAG_RATE));
+                }
+            } else {
+                if (getScrollY() <= 0) {
+                    moveRefresh((int) (-dy * DRAG_RATE));
+                }
             }
         }
     }
@@ -425,28 +457,53 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
 
     private void moveRefresh(int movDisY) {
         mRefreshView.bringToFront();
-        if (movDisY > 0) {
-            if (mRefreshView.getTop() + movDisY > 0) {
-                //如果向下滑动时,refresh已经全部显示出来了
-                movDisY = -mRefreshView.getTop();
+
+        if (mEnableFloat) {
+            if (movDisY > 0) {
+                if (mRefreshView.getTop() + movDisY > 0) {
+                    //如果向下滑动时,refresh已经全部显示出来了
+                    movDisY = -mRefreshView.getTop();
+                }
+            } else {
+                if (mRefreshView.getTop() + movDisY < -mRefreshView.getHeight()) {
+                    //如果向上滑动时,refresh已经完全不显示了
+                    movDisY = -mRefreshView.getHeight() - mRefreshView.getTop();
+                }
             }
+            mRefreshHandler.onPullProcess(Math.abs(-mRefreshView.getHeight() - mRefreshView.getTop()) * 1f / mRefreshHandler.getBeginRefreshDistance());
+            ViewCompat.offsetTopAndBottom(mRefreshView, movDisY);
         } else {
-            if (mRefreshView.getTop() + movDisY < -mRefreshView.getHeight()) {
-                //如果向上滑动时,refresh已经完全不显示了
-                movDisY = -mRefreshView.getHeight() - mRefreshView.getTop();
+            if (movDisY > 0) {
+                if (getScrollY() - movDisY < -mRefreshView.getHeight()) {
+                    //如果向下滑动时,refresh已经全部显示出来了
+                    movDisY = mRefreshView.getHeight() + getScrollY();
+                }
+            } else {
+                if (getScrollY() - movDisY > 0) {
+                    //如果向上滑动时,refresh已经完全不显示了
+                    movDisY = getScrollY();
+                }
             }
+            mRefreshHandler.onPullProcess(Math.abs(getScrollY()) * 1f / mRefreshHandler.getBeginRefreshDistance());
+            scrollBy(0, -movDisY);
         }
-        mRefreshHandler.onPullProcess(Math.abs(-mRefreshView.getHeight() - mRefreshView.getTop()) * 1f / mRefreshHandler.getBeginRefreshDistance());
-        ViewCompat.offsetTopAndBottom(mRefreshView, movDisY);
         mCurrentTargetOffsetTop = mRefreshView.getTop();
     }
 
 
-    private void releaseRefresh(float overscrollTop) {
-        if (overscrollTop >= mRefreshHandler.getBeginRefreshDistance()) {
-            animalToRefresh();
+    private void releaseRefresh() {
+        if (mEnableFloat) {
+            if (mRefreshView.getHeight() + mRefreshView.getTop() > mRefreshHandler.getBeginRefreshDistance()) {
+                animalToRefresh();
+            } else {
+                animalToStart();
+            }
         } else {
-            animalToStart();
+            if (-getScrollY() >= mRefreshHandler.getBeginRefreshDistance()) {
+                animalToRefresh();
+            } else {
+                animalToStart();
+            }
         }
     }
 
@@ -454,16 +511,19 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
         float scrollSum;
         mReturningToStart = true;
         mRefreshing = false;
-
-        scrollSum = mRefreshView.getHeight() + mRefreshView.getTop();
-        mLastMotionY = -scrollSum;
+        if (mEnableFloat) {
+            scrollSum = mRefreshView.getHeight() + mRefreshView.getTop();
+        } else {
+            scrollSum = -getScrollY();
+        }
+        mLastMotionY = scrollSum;
 
         startScrollToBackAnimal(scrollSum, new ValueAnimator.AnimatorUpdateListener() {
 
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                float value = -(float) animation.getAnimatedValue();
-                int movDisY = (int) (mLastMotionY - value);
+                float value = (float) animation.getAnimatedValue();
+                int movDisY = (int) (value - mLastMotionY);
 
                 moveRefresh(movDisY);
 
@@ -475,22 +535,35 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
                 mReturningToStart = false;
                 mRefreshing = false;
                 //fix float
-                moveRefresh(-mRefreshView.getHeight() - mRefreshView.getTop());
+                if (mEnableFloat) {
+                    moveRefresh(-mRefreshView.getHeight() - mRefreshView.getTop());
+                } else {
+                    moveRefresh(getScrollY());
+                }
+                reset();
                 mRefreshHandler.onReset();
             }
         });
     }
 
-    private void animalToRefresh() {
+    private void reset() {
+        mTarget.scrollTo(0, 0);
+    }
 
-        int scrollSum = mRefreshView.getHeight() + mRefreshView.getTop() - mRefreshHandler.getBeginRefreshDistance();
-        mLastMotionY = -scrollSum;
+    private void animalToRefresh() {
+        float scrollSum;
+        if (mEnableFloat) {
+            scrollSum = mRefreshView.getHeight() + mRefreshView.getTop() - mRefreshHandler.getBeginRefreshDistance();
+        } else {
+            scrollSum = -getScrollY() - mRefreshHandler.getBeginRefreshDistance();
+        }
+        mLastMotionY = scrollSum;
         startScrollToBackAnimal(scrollSum, new ValueAnimator.AnimatorUpdateListener() {
 
             @Override
             public void onAnimationUpdate(ValueAnimator animation) {
-                float value = -(float) animation.getAnimatedValue();
-                int movDisY = (int) (mLastMotionY - value);
+                float value = (float) animation.getAnimatedValue();
+                int movDisY = (int) (value - mLastMotionY);
 
                 moveRefresh(movDisY);
 
@@ -500,8 +573,14 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
             @Override
             public void onAnimationEnd(Animator animation) {
                 //fix float
-                int rightTop = mRefreshHandler.getBeginRefreshDistance() - mRefreshView.getHeight();
-                moveRefresh(rightTop - mRefreshView.getTop());
+                int rightTop;
+                if (mEnableFloat) {
+                    rightTop = mRefreshHandler.getBeginRefreshDistance() - mRefreshView.getHeight();
+                    moveRefresh(rightTop - mRefreshView.getTop());
+                } else {
+                    rightTop = -mRefreshHandler.getBeginRefreshDistance();
+                    moveRefresh(getScrollY() - rightTop);
+                }
                 //refreshView onRefresh
                 mRefreshHandler.onRefresh();
 
@@ -520,8 +599,7 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
     private void startDragging(float y) {
         final float yDiff = y - mInitialDownY;
         if (yDiff > mTouchSlop && !mIsBeingDragged) {
-            mInitialMotionY = mInitialDownY + mTouchSlop;
-            mLastMotionY = mInitialMotionY;
+            mLastMotionY = mInitialDownY + mTouchSlop;
             mIsBeingDragged = true;
         }
     }

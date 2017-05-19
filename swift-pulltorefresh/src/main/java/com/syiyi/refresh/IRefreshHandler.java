@@ -1,6 +1,7 @@
 package com.syiyi.refresh;
 
 import android.view.View;
+import android.view.ViewGroup;
 
 /**
  * 下拉刷新的处理
@@ -8,7 +9,7 @@ import android.view.View;
  */
 
 public interface IRefreshHandler {
-    View getRefreshView(SwiftPullToRefresh parent);
+    View getRefreshView(ViewGroup parent);
 
     int getBeginRefreshDistance();
 

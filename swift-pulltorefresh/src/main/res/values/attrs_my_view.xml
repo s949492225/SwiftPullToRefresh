@@ -1,0 +1,5 @@
+<resources>
+    <declare-styleable name="SwiftPullToRefresh">
+        <attr name="enableFloat" format="boolean" />
+    </declare-styleable>
+</resources>
