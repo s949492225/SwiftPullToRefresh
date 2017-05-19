@@ -12,11 +12,10 @@ public interface IRefreshHandler {
 
     int getBeginRefreshDistance();
 
-    void onBeginPull();
-
     void onPullProcess(float percent);
 
     void onRefresh();
 
-    boolean enableFloatModel();
+
+    void onReset();
 }

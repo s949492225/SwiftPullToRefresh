@@ -6,7 +6,7 @@ import android.view.View;
  * Created by Dell on 2017/5/18.
  */
 
-public abstract class BaseRefreshHandelr implements IRefreshHandler {
+public abstract class BaseRefreshHandler implements IRefreshHandler {
 
 
     @Override
@@ -20,11 +20,6 @@ public abstract class BaseRefreshHandelr implements IRefreshHandler {
     }
 
     @Override
-    public void onBeginPull() {
-
-    }
-
-    @Override
     public void onPullProcess(float percent) {
 
     }
@@ -34,8 +29,4 @@ public abstract class BaseRefreshHandelr implements IRefreshHandler {
 
     }
 
-    @Override
-    public boolean enableFloatModel() {
-        return true;
-    }
 }

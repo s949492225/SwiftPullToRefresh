@@ -5,7 +5,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 
-import com.syiyi.refresh.BaseRefreshHandelr;
+import com.syiyi.refresh.BaseRefreshHandler;
 import com.syiyi.refresh.DensityUtil;
 import com.syiyi.refresh.SwiftPullToRefresh;
 
@@ -14,7 +14,7 @@ import com.syiyi.refresh.SwiftPullToRefresh;
  * Created by Dell on 2017/5/18.
  */
 
-public class TextRefreshHandler extends BaseRefreshHandelr {
+public class TextRefreshHandler extends BaseRefreshHandler {
     private Context context;
     private static final String TAG = "TextRefreshHandler";
 
@@ -29,10 +29,6 @@ public class TextRefreshHandler extends BaseRefreshHandelr {
         return DensityUtil.dip2px(context, 200);
     }
 
-    @Override
-    public void onBeginPull() {
-        Log.d(TAG, "onBeginPull: ");
-    }
 
     @Override
     public void onPullProcess(float percent) {
@@ -45,7 +41,9 @@ public class TextRefreshHandler extends BaseRefreshHandelr {
     }
 
     @Override
-    public boolean enableFloatModel() {
-        return false;
+    public void onReset() {
+        Log.d(TAG, "onReset: ");
     }
+
+
 }
