@@ -6,7 +6,7 @@
 通过enableFloat控制是否为普通效果或者是谷歌官方的那种悬浮效果
 
 相较官方的SwipeRefreshLayout的改进点：
-  1.支持普通模式和悬浮模式
+  1.支持普通模式和悬浮模式\n
   2.支持自定义刷新头部
   3.支持多点触控（在非实现nestedScrollChild接口的子view时官方的SwipeRefreshLayout多点触控有问题）
   
