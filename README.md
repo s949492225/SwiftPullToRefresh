@@ -9,9 +9,11 @@
   1.支持普通模式和悬浮模式
   2.支持自定义刷新头部
   3.支持多点触控（在非实现nestedScrollChild接口的子view时官方的SwipeRefreshLayout多点触控有问题）
+  
 不支持的东西：
   1.不支持上拉加载更多，此功能实现较为简单。
   2.不支持官方的autoRefresh，后面考虑加入;
+  
 使用时需要注意的地方：
   1.如果使用nestedScrollChild接口的子view时,类如recycleView内部有viewPage，则需要改写recycleView拦截时x>y的问题，不需要更改SwiftPullToRefresh,
   因为此时不走SwiftPullToRefresh的onTouch事件
