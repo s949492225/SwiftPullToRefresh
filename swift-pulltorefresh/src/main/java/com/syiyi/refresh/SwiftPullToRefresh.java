@@ -334,11 +334,14 @@ public class SwiftPullToRefresh extends FrameLayout implements NestedScrollingPa
         // Finish the spinner for nested scrolling if we ever consumed any
         // unconsumed nested scroll
         if (mTotalUnconsumed > 0) {
-            releaseRefresh(mTotalUnconsumed);
             mTotalUnconsumed = 0;
         }
         // Dispatch up our nested parent
         stopNestedScroll();
+        if (-mRefreshView.getHeight() != mRefreshView.getTop()) {
+            releaseRefresh(mRefreshView.getTop() + mRefreshView.getHeight());
+        }
+
     }
 
     @Override
